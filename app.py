@@ -1,24 +1,37 @@
 from flask import Flask, jsonify
-from scrapers.united_scraper import get_united_offers
+from scrapers.united_scraper import scrape_united
+from scrapers.delta_scraper import scrape_delta
 
 app = Flask(__name__)
 
-@app.route("/united")
-def united():
-    offers = get_united_offers()
-    return jsonify({"United MileagePlus": offers})
-@app.route("/delta")
-def delta():
-    from scrapers.delta_scraper import scrape_delta
-    try:
-        offers = scrape_delta()
-        return jsonify({"delta_skymiles": offers})
-    except Exception:
-        return jsonify({"delta_skymiles": []})
-
 @app.route("/")
 def home():
-    return "MileScout backend is live!"
+    return "MileScout Backend is Live"
+
+@app.route("/united")
+def united():
+    return scrape_united()
+
+@app.route("/delta")
+def delta():
+    return scrape_delta()
+
+@app.route("/all")
+def all_airlines():
+    try:
+        united_offers = scrape_united()["united_mileageplus"]
+    except:
+        united_offers = []
+
+    try:
+        delta_offers = scrape_delta()["delta_skymiles"]
+    except:
+        delta_offers = []
+
+    return jsonify({
+        "united_mileageplus": united_offers,
+        "delta_skymiles": delta_offers
+    })
 
 if __name__ == "__main__":
     app.run(debug=False)
