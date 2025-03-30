@@ -1,47 +1,42 @@
 from flask import Flask, jsonify
+import requests
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
-@app.route('/all')
-def all_offers():
-    data = {
-        "United MileagePlus": [
-            { "store": "sephora.com", "miles_per_dollar": "6x" },
-            { "store": "nike.com", "miles_per_dollar": "4x" },
-            { "store": "apple.com", "miles_per_dollar": "3x" },
-            { "store": "macys.com", "miles_per_dollar": "5x" },
-            { "store": "ulta.com", "miles_per_dollar": "7x" }
-        ],
-        "Delta SkyMiles": [
-            { "store": "sephora.com", "miles_per_dollar": "5x" },
-            { "store": "nike.com", "miles_per_dollar": "6x" },
-            { "store": "apple.com", "miles_per_dollar": "2x" },
-            { "store": "macys.com", "miles_per_dollar": "6x" },
-            { "store": "ulta.com", "miles_per_dollar": "4x" }
-        ],
-        "American AAdvantage": [
-            { "store": "sephora.com", "miles_per_dollar": "4x" },
-            { "store": "nike.com", "miles_per_dollar": "5x" },
-            { "store": "apple.com", "miles_per_dollar": "3x" },
-            { "store": "macys.com", "miles_per_dollar": "5x" },
-            { "store": "ulta.com", "miles_per_dollar": "4x" }
-        ],
-        "Alaska Mileage Plan": [
-            { "store": "sephora.com", "miles_per_dollar": "3x" },
-            { "store": "nike.com", "miles_per_dollar": "4x" },
-            { "store": "apple.com", "miles_per_dollar": "2x" },
-            { "store": "macys.com", "miles_per_dollar": "4x" },
-            { "store": "ulta.com", "miles_per_dollar": "5x" }
-        ],
-        "Southwest Rapid Rewards": [
-            { "store": "sephora.com", "miles_per_dollar": "2x" },
-            { "store": "nike.com", "miles_per_dollar": "3x" },
-            { "store": "apple.com", "miles_per_dollar": "1x" },
-            { "store": "macys.com", "miles_per_dollar": "3x" },
-            { "store": "ulta.com", "miles_per_dollar": "4x" }
-        ]
-    }
-    return jsonify(data)
+def scrape_united():
+    url = "https://www.mileageplusshopping.com/"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    offers = []
+
+    for merchant in soup.select(".merchant"):
+        name_tag = merchant.select_one(".merchant-name")
+        rate_tag = merchant.select_one(".merchant-rate")
+        link_tag = merchant.find("a")
+
+        if name_tag and rate_tag and link_tag:
+            name = name_tag.text.strip()
+            rate_text = rate_tag.text.strip()
+            domain = link_tag["href"].split("/")[-1].lower() + ".com"
+            miles = rate_text.split(" ")[0] + "x"
+
+            offers.append({
+                "store": domain,
+                "miles_per_dollar": miles
+            })
+
+    return offers
+
+@app.route("/united")
+def united():
+    data = scrape_united()
+    return jsonify({"united_mileageplus": data})
+
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok"})
+
+if __name__ == "__main__":
+    app.run(debug=False)
