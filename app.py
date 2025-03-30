@@ -7,6 +7,14 @@ app = Flask(__name__)
 def united():
     offers = get_united_offers()
     return jsonify({"United MileagePlus": offers})
+@app.route("/delta")
+def delta():
+    from scrapers.delta_scraper import scrape_delta
+    try:
+        offers = scrape_delta()
+        return jsonify({"delta_skymiles": offers})
+    except Exception:
+        return jsonify({"delta_skymiles": []})
 
 @app.route("/")
 def home():
